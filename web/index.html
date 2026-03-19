@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Painel CFTV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="bg-noise"></div>
+  <header class="hero">
+    <div class="hero__left">
+      <p class="hero__eyebrow">CFTV Operations Center</p>
+      <h1>Monitoramento Profissional</h1>
+      <p class="hero__subtitle">Visao operacional em tempo real para rede, camera, banda e armazenamento.</p>
+    </div>
+    <div class="hero__right">
+      <div class="status-pill" id="status-pill">Conectando...</div>
+      <div class="clock" id="clock">--:--:--</div>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <section class="cards">
+      <article class="card" id="card-rede">
+        <h2>Rede</h2>
+        <p class="metric" id="metric-rede">-</p>
+        <span class="hint">Conectividade atual</span>
+      </article>
+
+      <article class="card" id="card-camera">
+        <h2>Camera</h2>
+        <p class="metric" id="metric-camera">-</p>
+        <span class="hint">Integridade de sinal</span>
+      </article>
+
+      <article class="card">
+        <h2>Banda</h2>
+        <p class="metric" id="metric-banda">0.00 Mbps</p>
+        <span class="hint">Taxa instantanea</span>
+      </article>
+
+      <article class="card">
+        <h2>Disco</h2>
+        <p class="metric" id="metric-disco">0.0%</p>
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-disco"></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel-grid">
+      <article class="panel">
+        <div class="panel__header">
+          <h3>Resumo</h3>
+          <span class="tag">Live</span>
+        </div>
+        <div class="summary-grid">
+          <div>
+            <span>Ciclos</span>
+            <strong id="sum-ciclos">0</strong>
+          </div>
+          <div>
+            <span>Uptime Rede</span>
+            <strong id="sum-rede">0.0%</strong>
+          </div>
+          <div>
+            <span>Camera OK</span>
+            <strong id="sum-camera">0.0%</strong>
+          </div>
+          <div>
+            <span>Banda Media</span>
+            <strong id="sum-banda">0.00 Mbps</strong>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel__header">
+          <h3>Tendencia</h3>
+          <span class="tag">Ultimos pontos</span>
+        </div>
+        <canvas id="chart" width="900" height="280"></canvas>
+      </article>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span id="last-update">Sem dados ainda</span>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
