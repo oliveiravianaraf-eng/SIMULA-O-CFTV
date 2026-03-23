@@ -1,0 +1,2 @@
+# requirements.txt vazio pois o projeto não tem dependências externas
+# Apenas usa libs nativas do Python 3
