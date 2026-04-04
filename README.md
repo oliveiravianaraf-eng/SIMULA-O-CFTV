@@ -17,8 +17,23 @@ Agora o projeto tambem inclui um painel web profissional com tema azul e atualiz
 
 ## Como executar
 
+### Local (dev)
+
 ```bash
 python simulador_cftv.py
+```
+
+### Docker (prod/lab)
+
+```bash
+docker-compose up --build
+```
+
+Ou manualmente:
+
+```bash
+docker build -t cftv-dashboard .
+docker run -p 8080:8080 -e LOG_LEVEL=INFO cftv-dashboard
 ```
 
 ## Painel web profissional (azul)
@@ -75,6 +90,8 @@ python simulador_cftv.py --ciclos 5 --sem-sleep --formato json
 
 ## Parametros principais
 
+### Simulador
+
 - `--intervalo`: intervalo entre ciclos em segundos (padrao: 5)
 - `--ciclos`: quantidade de ciclos (padrao: 0 = infinito)
 - `--chance-rede-online`: probabilidade da rede estar online (0 a 1, padrao: 0.90)
@@ -84,6 +101,16 @@ python simulador_cftv.py --ciclos 5 --sem-sleep --formato json
 - `--formato`: formato de saida (`texto` ou `json`)
 - `--sem-resumo`: desabilita o resumo estatistico ao fim
 - `--sem-sleep`: nao espera entre ciclos (util para testes)
+
+### Servidor web
+
+- `--host` (env: `HOST`): bind address (padrao: 0.0.0.0)
+- `--port` (env: `PORT`): porta HTTP (padrao: 8080)
+- `--intervalo` (env: `INTERVAL`): ciclo de atualizacao em segundos (padrao: 2.0)
+
+### Logging
+
+- `LOG_LEVEL` (env var): DEBUG, INFO, WARNING, ERROR (padrao: INFO)
 
 ## Testes automatizados
 
@@ -147,12 +174,42 @@ sudo systemctl start cftv-dashboard
 sudo systemctl status cftv-dashboard
 ```
 
+## Endpoints disponiveis
+
+- `GET /` - Painel de dashboard
+- `GET /api/status` - Status atual (JSON)
+- `GET /healthz` - Health check com uptime (JSON)
+- `GET /metrics` - Metricas Prometheus (text/plain)
+- `GET /styles.css` - CSS do painel
+- `GET /app.js` - JavaScript do painel
+
+## Variáveis de Ambiente
+
+Crie um arquivo `.env` na raiz do projeto (baseado em `.env.example`):
+
+```bash
+cp .env.example .env
+# Edite conforme necessario
+```
+
+## Logs estruturados
+
+Os logs sao emitidos em formato texto estruturado com timestamp ISO.
+Para debug detalhado, use:
+
+```bash
+LOG_LEVEL=DEBUG python servidor_web_cftv.py
+```
+
+Todos os eventos HTTP sao registrados automaticamente.
+
 ## Integracao pratica com Zabbix
 
 Itens iniciais recomendados:
 
-- HTTP Agent: `http://<IP_VM>:8080/healthz`
-- HTTP Agent: `http://<IP_VM>:8080/api/status`
+- HTTP Agent: `http://<IP_VM>:8080/healthz` (check saude + uptime)
+- HTTP Agent: `http://<IP_VM>:8080/api/status` (dados principais)
+- HTTP Agent: `http://<IP_VM>:8080/metrics` (Prometheus format para Grafana)
 - Dependent items (JSONPath) do `/api/status`:
 	- `$.evento.conectividade`
 	- `$.evento.sinal_video`
