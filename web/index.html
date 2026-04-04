@@ -3,344 +3,81 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CFTV Dashboard Pro</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-    * { font-family: 'Inter', sans-serif; }
-    
-    .gradient-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-    
-    .gradient-success {
-      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-    }
-    
-    .card-glass {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    
-    .metric-pulse {
-      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-    
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.7; }
-    }
-    
-    .status-online {
-      color: #10b981;
-      text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
-    }
-    
-    .status-offline {
-      color: #ef4444;
-      text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
-    }
-  </style>
+  <title>CFTV Painel Operacional</title>
+  <link rel="stylesheet" href="/styles.css">
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white overflow-x-hidden">
-  
-  <!-- Header -->
-  <header class="border-b border-slate-700 bg-slate-800/50 backdrop-blur-xl fixed w-full top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 gradient-primary rounded-lg flex items-center justify-center">
-          <i class="fas fa-camera text-white text-lg"></i>
-        </div>
-        <div>
-          <h1 class="text-2xl font-bold">CFTV Dashboard Pro</h1>
-          <p class="text-sm text-slate-400">Real-time Monitoring</p>
-        </div>
-      </div>
-      <div class="flex items-center space-x-4">
-        <div id="clock" class="text-sm font-mono text-slate-300">--:--:--</div>
-        <div id="status-badge" class="px-3 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-300 border border-red-500/30">
-          Conectando...
-        </div>
-      </div>
+<body>
+  <div class="bg-noise" aria-hidden="true"></div>
+
+  <header class="hero">
+    <div>
+      <p class="hero__eyebrow">monitoramento cftv</p>
+      <h1>Painel Operacional de Telemetria</h1>
+      <p class="hero__subtitle">Acompanhamento em tempo real de conectividade, camera, banda e disco para ambiente de laboratorio e homologacao.</p>
+    </div>
+    <div class="hero__right">
+      <div id="status-pill" class="status-pill is-down">Conectando</div>
+      <div id="clock" class="clock">--:--:--</div>
+      <div id="last-update" class="hint">Aguardando primeira leitura</div>
     </div>
   </header>
 
-  <main class="pt-24 pb-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      
-      <!-- Stats Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        
-        <!-- Rede -->
-        <div class="card-glass rounded-2xl p-6 hover:bg-white/15 transition">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-slate-300 text-sm font-semibold">Rede</h3>
-            <i class="fas fa-network-wired text-blue-400 text-xl"></i>
-          </div>
-          <div class="text-3xl font-bold mb-2" id="metric-rede">-</div>
-          <p class="text-xs text-slate-400">Status de conectividade</p>
-          <div class="mt-3 h-1 bg-slate-700 rounded-full overflow-hidden">
-            <div id="rede-bar" class="h-full bg-gradient-to-r from-blue-400 to-blue-600 w-0 transition-all duration-300"></div>
-          </div>
-        </div>
+  <main class="dashboard">
+    <section class="cards">
+      <article class="card">
+        <h2>Rede</h2>
+        <p id="metric-rede" class="metric">-</p>
+        <p class="hint">Conectividade atual do servidor</p>
+      </article>
 
-        <!-- Câmera -->
-        <div class="card-glass rounded-2xl p-6 hover:bg-white/15 transition">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-slate-300 text-sm font-semibold">Câmera</h3>
-            <i class="fas fa-video text-purple-400 text-xl"></i>
-          </div>
-          <div class="text-3xl font-bold mb-2" id="metric-camera">-</div>
-          <p class="text-xs text-slate-400">Sinal de vídeo</p>
-          <div class="mt-3 h-1 bg-slate-700 rounded-full overflow-hidden">
-            <div id="camera-bar" class="h-full bg-gradient-to-r from-purple-400 to-purple-600 w-0 transition-all duration-300"></div>
-          </div>
-        </div>
+      <article class="card">
+        <h2>Camera</h2>
+        <p id="metric-camera" class="metric">-</p>
+        <p class="hint">Status de sinal de video</p>
+      </article>
 
-        <!-- Banda -->
-        <div class="card-glass rounded-2xl p-6 hover:bg-white/15 transition">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-slate-300 text-sm font-semibold">Banda</h3>
-            <i class="fas fa-activity text-green-400 text-xl"></i>
-          </div>
-          <div class="text-3xl font-bold mb-2" id="metric-banda">0.00</div>
-          <p class="text-xs text-slate-400">Mbps instantânea</p>
-          <div class="mt-3 h-1 bg-slate-700 rounded-full overflow-hidden">
-            <div id="banda-bar" class="h-full bg-gradient-to-r from-green-400 to-green-600 w-0 transition-all duration-300"></div>
-          </div>
-        </div>
+      <article class="card">
+        <h2>Banda</h2>
+        <p id="metric-banda" class="metric">0.00 Mbps</p>
+        <p class="hint">Taxa instantanea</p>
+      </article>
 
-        <!-- Disco -->
-        <div class="card-glass rounded-2xl p-6 hover:bg-white/15 transition">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-slate-300 text-sm font-semibold">Disco</h3>
-            <i class="fas fa-hdd text-orange-400 text-xl"></i>
-          </div>
-          <div class="text-3xl font-bold mb-2" id="metric-disco">0.0%</div>
-          <p class="text-xs text-slate-400">Uso total</p>
-          <div class="mt-3 h-1 bg-slate-700 rounded-full overflow-hidden">
-            <div id="disco-bar" class="h-full bg-gradient-to-r from-orange-400 to-orange-600 w-0 transition-all duration-300"></div>
-          </div>
-        </div>
-      </div>
+      <article class="card">
+        <h2>Disco</h2>
+        <p id="metric-disco" class="metric">0.0%</p>
+        <p class="hint">Uso de armazenamento</p>
+        <div class="progress-track"><div id="progress-disco" class="progress-fill"></div></div>
+      </article>
+    </section>
 
-      <!-- Summary & Chart -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        <!-- Summary Panel -->
-        <div class="card-glass rounded-2xl p-6 lg:col-span-1">
-          <h2 class="text-lg font-bold mb-6 flex items-center">
-            <i class="fas fa-chart-line text-blue-400 mr-3"></i> Resumo
-          </h2>
-          
-          <div class="space-y-4">
-            <div class="bg-slate-800/50 rounded-lg p-4">
-              <p class="text-xs text-slate-400 mb-1">Ciclos Executados</p>
-              <p class="text-2xl font-bold text-blue-400" id="sum-ciclos">0</p>
-            </div>
-            
-            <div class="bg-slate-800/50 rounded-lg p-4">
-              <p class="text-xs text-slate-400 mb-1">Uptime de Rede</p>
-              <p class="text-2xl font-bold" id="sum-rede">0.0%</p>
-              <div class="mt-2 h-2 bg-slate-700 rounded-full overflow-hidden">
-                <div id="rede-progress" class="h-full bg-gradient-to-r from-green-400 to-green-600 w-0 transition-all duration-300"></div>
-              </div>
-            </div>
-            
-            <div class="bg-slate-800/50 rounded-lg p-4">
-              <p class="text-xs text-slate-400 mb-1">Câmera (OK)</p>
-              <p class="text-2xl font-bold" id="sum-camera">0.0%</p>
-              <div class="mt-2 h-2 bg-slate-700 rounded-full overflow-hidden">
-                <div id="camera-progress" class="h-full bg-gradient-to-r from-purple-400 to-purple-600 w-0 transition-all duration-300"></div>
-              </div>
-            </div>
-            
-            <div class="bg-slate-800/50 rounded-lg p-4">
-              <p class="text-xs text-slate-400 mb-1">Banda Média</p>
-              <p class="text-2xl font-bold text-green-400" id="sum-banda">0.00 Mbps</p>
-            </div>
-          </div>
+    <section class="panel-grid">
+      <article class="panel">
+        <div class="panel__header">
+          <h3>Resumo</h3>
+          <span class="tag">ultimos ciclos</span>
         </div>
+        <div class="summary-grid">
+          <div><span>Ciclos</span><strong id="sum-ciclos">0</strong></div>
+          <div><span>Uptime rede</span><strong id="sum-rede">0.0%</strong></div>
+          <div><span>Camera OK</span><strong id="sum-camera">0.0%</strong></div>
+          <div><span>Banda media</span><strong id="sum-banda">0.00 Mbps</strong></div>
+        </div>
+      </article>
 
-        <!-- Chart Panel -->
-        <div class="card-glass rounded-2xl p-6 lg:col-span-2">
-          <h2 class="text-lg font-bold mb-6 flex items-center">
-            <i class="fas fa-chart-area text-purple-400 mr-3"></i> Tendência em Tempo Real
-          </h2>
-          <canvas id="chart" class="rounded-lg"></canvas>
+      <article class="panel">
+        <div class="panel__header">
+          <h3>Tendencia</h3>
+          <span class="tag">banda e disco</span>
         </div>
-      </div>
-
-      <!-- Logs Panel -->
-      <div class="card-glass rounded-2xl p-6 mt-6">
-        <h2 class="text-lg font-bold mb-4 flex items-center">
-          <i class="fas fa-list text-indigo-400 mr-3"></i> Últimos Eventos
-        </h2>
-        <div id="logs-container" class="space-y-2 max-h-48 overflow-y-auto">
-          <p class="text-sm text-slate-400">Aguardando eventos...</p>
-        </div>
-      </div>
-    </div>
+        <canvas id="chart" width="760" height="300" aria-label="Grafico de tendencia"></canvas>
+      </article>
+    </section>
   </main>
 
-  <script>
-    const state = {
-      eventos: [],
-      maxEventos: 50,
-      chartInstance: null,
-    };
+  <footer class="footer">
+    API: <code>/api/status</code> | Saude: <code>/healthz</code>
+  </footer>
 
-    const els = {
-      statusBadge: document.getElementById('status-badge'),
-      clock: document.getElementById('clock'),
-      metricRede: document.getElementById('metric-rede'),
-      metricCamera: document.getElementById('metric-camera'),
-      metricBanda: document.getElementById('metric-banda'),
-      metricDisco: document.getElementById('metric-disco'),
-      redesBar: document.getElementById('rede-bar'),
-      cameraBar: document.getElementById('camera-bar'),
-      bandaBar: document.getElementById('banda-bar'),
-      discoBar: document.getElementById('disco-bar'),
-      sumCiclos: document.getElementById('sum-ciclos'),
-      sumRede: document.getElementById('sum-rede'),
-      sumCamera: document.getElementById('sum-camera'),
-      sumBanda: document.getElementById('sum-banda'),
-      redesProgress: document.getElementById('rede-progress'),
-      cameraProgress: document.getElementById('camera-progress'),
-      logsContainer: document.getElementById('logs-container'),
-      chartCanvas: document.getElementById('chart'),
-    };
-
-    function initChart() {
-      const ctx = els.chartCanvas.getContext('2d');
-      state.chartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: [],
-          datasets: [
-            {
-              label: 'Banda (Mbps)',
-              data: [],
-              borderColor: '#10b981',
-              backgroundColor: 'rgba(16, 185, 129, 0.1)',
-              tension: 0.4,
-              fill: true,
-              yAxisID: 'y',
-            },
-            {
-              label: 'Disco (%)',
-              data: [],
-              borderColor: '#f59e0b',
-              backgroundColor: 'rgba(245, 158, 11, 0.1)',
-              tension: 0.4,
-              fill: true,
-              yAxisID: 'y1',
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          interaction: { mode: 'index', intersect: false },
-          plugins: { legend: { display: true, labels: { usePointStyle: true } } },
-          scales: {
-            y: { type: 'linear', display: true, position: 'left', max: 5 },
-            y1: { type: 'linear', display: true, position: 'right', max: 100 },
-          },
-        },
-      });
-    }
-
-    function addLog(texto) {
-      const logEl = document.createElement('div');
-      logEl.className = 'text-xs text-slate-400 font-mono p-2 bg-slate-900/50 rounded border border-slate-700/50';
-      logEl.textContent = `[${new Date().toLocaleTimeString('pt-BR')}] ${texto}`;
-      els.logsContainer.insertBefore(logEl, els.logsContainer.firstChild);
-      
-      // Limita a 50 logs
-      while (els.logsContainer.children.length > 50) {
-        els.logsContainer.removeChild(els.logsContainer.lastChild);
-      }
-    }
-
-    function render(payload) {
-      const evento = payload.evento;
-      const resumo = payload.resumo;
-
-      // Status badge
-      if (evento.conectividade) {
-        els.statusBadge.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Online';
-        els.statusBadge.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-300 border border-green-500/30';
-      } else {
-        els.statusBadge.innerHTML = '<i class="fas fa-times-circle mr-2"></i>Offline';
-        els.statusBadge.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-300 border border-red-500/30';
-      }
-
-      // Métricas principais
-      els.metricRede.textContent = evento.conectividade ? '🟢 Online' : '🔴 Offline';
-      els.metricRede.className = `text-3xl font-bold mb-2 ${evento.conectividade ? 'status-online' : 'status-offline'}`;
-      
-      els.metricCamera.textContent = evento.sinal_video ? '✓ OK' : '✗ Sem Sinal';
-      els.metricCamera.className = `text-3xl font-bold mb-2 ${evento.sinal_video ? 'text-green-400' : 'text-red-400'}`;
-      
-      els.metricBanda.textContent = `${evento.banda_mbps.toFixed(2)} Mbps`;
-      els.metricDisco.textContent = `${evento.uso_disco_pct.toFixed(1)}%`;
-
-      // Barras de progresso
-      els.redesBar.style.width = `${evento.conectividade ? 100 : 0}%`;
-      els.cameraBar.style.width = `${evento.sinal_video ? 100 : 0}%`;
-      els.bandaBar.style.width = `${Math.min(100, (evento.banda_mbps / 5) * 100)}%`;
-      els.discoBar.style.width = `${evento.uso_disco_pct}%`;
-
-      // Resumo
-      els.sumCiclos.textContent = Math.floor(resumo.total_ciclos);
-      els.sumRede.textContent = `${resumo.uptime_rede_pct.toFixed(1)}%`;
-      els.sumCamera.textContent = `${resumo.camera_ok_pct.toFixed(1)}%`;
-      els.sumBanda.textContent = `${resumo.banda_media_mbps.toFixed(2)} Mbps`;
-
-      // Progress bars do resumo
-      els.redesProgress.style.width = `${resumo.uptime_rede_pct}%`;
-      els.cameraProgress.style.width = `${resumo.camera_ok_pct}%`;
-
-      // Chart
-      if (state.chartInstance) {
-        state.chartInstance.data.labels.push(`Ciclo ${evento.ciclo}`);
-        state.chartInstance.data.datasets[0].data.push(evento.banda_mbps);
-        state.chartInstance.data.datasets[1].data.push(evento.uso_disco_pct);
-
-        if (state.chartInstance.data.labels.length > 30) {
-          state.chartInstance.data.labels.shift();
-          state.chartInstance.data.datasets.forEach(d => d.data.shift());
-        }
-        state.chartInstance.update('none');
-      }
-
-      // Logs
-      addLog(`Ciclo ${evento.ciclo}: ${evento.conectividade ? 'Online' : 'Offline'} | ${evento.sinal_video ? 'Câmera OK' : 'Sem Sinal'} | ${evento.banda_mbps.toFixed(2)} Mbps`);
-    }
-
-    async function fetchStatus() {
-      try {
-        const res = await fetch('/api/status', { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        render(data);
-      } catch (err) {
-        els.statusBadge.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>Erro';
-        els.statusBadge.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-yellow-500/20 text-yellow-300 border border-yellow-500/30';
-      }
-    }
-
-    // Inicialização
-    initChart();
-    fetchStatus();
-    setInterval(fetchStatus, 2000);
-    setInterval(() => {
-      els.clock.textContent = new Date().toLocaleTimeString('pt-BR');
-    }, 1000);
-  </script>
+  <script src="/app.js"></script>
 </body>
 </html>

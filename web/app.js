@@ -2,6 +2,10 @@ const state = {
   pontosBanda: [],
   pontosDisco: [],
   maxPontos: 30,
+  baseIntervalMs: 2000,
+  retryIntervalMs: 2000,
+  retryMaxMs: 15000,
+  pollTimer: null,
 };
 
 const el = {
@@ -53,6 +57,13 @@ function pushSerie(arr, value) {
 function drawChart() {
   const canvas = el.chart;
   const ctx = canvas.getContext("2d");
+
+  // Keep canvas bitmap in sync with CSS size for crisp rendering.
+  const cssWidth = canvas.clientWidth;
+  if (cssWidth > 0 && canvas.width !== cssWidth) {
+    canvas.width = cssWidth;
+  }
+
   const width = canvas.width;
   const height = canvas.height;
 
@@ -91,6 +102,26 @@ function drawChart() {
   ctx.fillText("Disco (%)", 16, 44);
 }
 
+function isValidPayload(payload) {
+  if (!payload || typeof payload !== "object") return false;
+  if (!payload.evento || !payload.resumo) return false;
+
+  const evento = payload.evento;
+  const resumo = payload.resumo;
+
+  const requiredEvento = ["ciclo", "conectividade", "sinal_video", "banda_mbps", "uso_disco_pct", "timestamp"];
+  const requiredResumo = ["total_ciclos", "uptime_rede_pct", "camera_ok_pct", "banda_media_mbps"];
+
+  return requiredEvento.every((key) => key in evento) && requiredResumo.every((key) => key in resumo);
+}
+
+function scheduleNextPoll(delayMs) {
+  if (state.pollTimer) {
+    clearTimeout(state.pollTimer);
+  }
+  state.pollTimer = setTimeout(fetchStatus, delayMs);
+}
+
 function render(payload) {
   const evento = payload.evento;
   const resumo = payload.resumo;
@@ -126,17 +157,25 @@ async function fetchStatus() {
     }
 
     const payload = await response.json();
+    if (!isValidPayload(payload)) {
+      throw new Error("payload invalido");
+    }
+
     render(payload);
+    state.retryIntervalMs = state.baseIntervalMs;
+    scheduleNextPoll(state.baseIntervalMs);
   } catch (error) {
     el.statusPill.textContent = "Falha de conexao";
     el.statusPill.classList.remove("is-up");
     el.statusPill.classList.add("is-down");
-    el.lastUpdate.textContent = `Erro ao obter status: ${error.message}`;
+    el.lastUpdate.textContent = `Erro ao obter status: ${error.message}. Nova tentativa em ${Math.round(state.retryIntervalMs / 1000)}s`;
+
+    scheduleNextPoll(state.retryIntervalMs);
+    state.retryIntervalMs = Math.min(state.retryIntervalMs * 2, state.retryMaxMs);
   }
 }
 
 fetchStatus();
-setInterval(fetchStatus, 2000);
 setInterval(() => {
   el.clock.textContent = new Date().toLocaleTimeString("pt-BR");
 }, 1000);

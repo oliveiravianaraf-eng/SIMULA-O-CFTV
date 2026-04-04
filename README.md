@@ -35,6 +35,12 @@ Abrir no navegador:
 http://SEU_IP_DA_VM:8080
 ```
 
+Saude da aplicacao (para monitoramento):
+
+```text
+http://SEU_IP_DA_VM:8080/healthz
+```
+
 Exemplo com ambiente instavel:
 
 ```bash
@@ -127,3 +133,40 @@ python3 servidor_web_cftv.py --host 0.0.0.0 --port 8080
 ```bash
 sudo ufw allow 8080/tcp
 ```
+
+## Rodar como servico (systemd)
+
+1. Copie o arquivo `deploy/systemd/cftv-dashboard.service` para `/etc/systemd/system/`.
+2. Ajuste `WorkingDirectory` e `ExecStart` para o caminho real na VM.
+3. Execute:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable cftv-dashboard
+sudo systemctl start cftv-dashboard
+sudo systemctl status cftv-dashboard
+```
+
+## Integracao pratica com Zabbix
+
+Itens iniciais recomendados:
+
+- HTTP Agent: `http://<IP_VM>:8080/healthz`
+- HTTP Agent: `http://<IP_VM>:8080/api/status`
+- Dependent items (JSONPath) do `/api/status`:
+	- `$.evento.conectividade`
+	- `$.evento.sinal_video`
+	- `$.evento.banda_mbps`
+	- `$.evento.uso_disco_pct`
+	- `$.resumo.uptime_rede_pct`
+	- `$.resumo.camera_ok_pct`
+	- `$.resumo.banda_media_mbps`
+
+Triggers uteis:
+
+- Health endpoint indisponivel por 1 minuto
+- Conectividade (`evento.conectividade`) igual a 0 por 3 coletas
+- Camera sem sinal (`evento.sinal_video`) por 3 coletas
+- Uso de disco acima de 90%
+
+Veja tambem: `zabbix/cftv-zabbix-items.md`.

@@ -41,10 +41,10 @@ cd SIMULA-O-CFTV
 echo "[CFTV] Criando ambiente virtual..."
 python3 -m venv .venv
 source .venv/bin/activate
-echo "[CFTV] Instalando dependências..."
-pip install -q -r requirements.txt 2>/dev/null || true
+echo "[CFTV] Instalando dependencias..."
+pip install -q -r requirements.txt
 echo "[CFTV] Executando testes..."
-python3 -m unittest discover -s tests -q 2>/dev/null || true
+python3 -m unittest discover -s tests -q
 VM_IP=$(hostname -I | awk '{print $1}')
 echo ""
 echo "=========================================="

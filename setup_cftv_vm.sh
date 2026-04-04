@@ -2,7 +2,7 @@
 # Setup automático - CFTV Painel Web na VM Ubuntu
 # Uso: bash setup_cftv_vm.sh
 
-set -e
+set -euo pipefail
 
 echo "=========================================="
 echo "CFTV Painel Web - Setup Automático"
@@ -39,7 +39,7 @@ fi
 
 # 5. Rodar testes rápidos
 echo "[5/6] Executando testes..."
-python3 -m unittest discover -s tests -q 2>/dev/null || echo "Testes executados (algumas falhas esperadas)"
+python3 -m unittest discover -s tests -q
 
 # 6. Exibir informações de rede
 echo "[6/6] Obtendo IP da VM..."

@@ -18,6 +18,7 @@ from http.server import BaseHTTPRequestHandler
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from simulador_cftv import ConfiguracaoSimulador
 from simulador_cftv import EventoCFTV
@@ -87,11 +88,19 @@ class SimuladorLoop(threading.Thread):
 class CFTVRequestHandler(BaseHTTPRequestHandler):
     estado: EstadoSimulacao
 
+    def _send_common_headers(self) -> None:
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+
+    def _path_only(self) -> str:
+        # Ignore query params so routes like /api/status?source=zabbix keep working.
+        return urlparse(self.path).path
+
     def _send_json(self, payload: dict[str, Any], status: int = HTTPStatus.OK) -> None:
         content = json.dumps(payload, ensure_ascii=True).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Cache-Control", "no-store")
+        self._send_common_headers()
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()
         self.wfile.write(content)
@@ -104,26 +113,32 @@ class CFTVRequestHandler(BaseHTTPRequestHandler):
         data = file_path.read_bytes()
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", content_type)
-        self.send_header("Cache-Control", "no-store")
+        self._send_common_headers()
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)
 
     def do_GET(self) -> None:  # noqa: N802
-        if self.path == "/api/status":
+        path = self._path_only()
+
+        if path == "/api/status":
             payload = self.estado.snapshot()
             self._send_json(payload)
             return
 
-        if self.path == "/" or self.path == "/index.html":
+        if path == "/healthz":
+            self._send_json({"status": "ok", "timestamp": datetime.now().isoformat(timespec="seconds")})
+            return
+
+        if path == "/" or path == "/index.html":
             self._send_file(WEB_DIR / "index.html", "text/html; charset=utf-8")
             return
 
-        if self.path == "/styles.css":
+        if path == "/styles.css":
             self._send_file(WEB_DIR / "styles.css", "text/css; charset=utf-8")
             return
 
-        if self.path == "/app.js":
+        if path == "/app.js":
             self._send_file(WEB_DIR / "app.js", "application/javascript; charset=utf-8")
             return
 
