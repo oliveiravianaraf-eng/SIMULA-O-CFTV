@@ -68,6 +68,28 @@ class TestServidorWebCFTV(unittest.TestCase):
         self.assertIn("# HELP cftv_evento_cpu_pct", body)
         self.assertIn("# TYPE cftv_total_requisicoes counter", body)
 
+    def test_rota_api_state_retorna_perfil(self) -> None:
+        with urlopen(f"{self.base_url}/api/state", timeout=2) as response:
+            self.assertEqual(response.status, 200)
+            payload = json.loads(response.read().decode("utf-8"))
+
+        self.assertIn("perfil_carga", payload)
+        self.assertIn("perfil_base", payload)
+
+    def test_rota_api_command_dispara_burst_temporario(self) -> None:
+        with urlopen(f"{self.base_url}/api/command?acao=burst&duracao=1", timeout=2) as response:
+            self.assertEqual(response.status, 200)
+            payload = json.loads(response.read().decode("utf-8"))
+
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["acao"], "perfil_burst")
+        self.assertEqual(payload["perfil_atual"], "burst")
+
+        with urlopen(f"{self.base_url}/api/state", timeout=2) as response:
+            state_payload = json.loads(response.read().decode("utf-8"))
+
+        self.assertEqual(state_payload["perfil_carga"], "burst")
+
     def test_rota_inexistente_retorna_404(self) -> None:
         with self.assertRaises(HTTPError) as context:
             urlopen(f"{self.base_url}/nao-existe", timeout=2)

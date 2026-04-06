@@ -23,6 +23,7 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
+from urllib.parse import parse_qs
 
 from simulador_cftv import ConfiguracaoSimulador
 from simulador_cftv import EventoCFTV
@@ -61,6 +62,38 @@ class EstadoSimulacao:
         self.inicializacao = datetime.now()
         self.total_requisicoes = 0
         self.total_erros = 0
+        self._perfil_base = cfg.perfil_carga
+        self._timer_perfil: threading.Timer | None = None
+
+    def _restaurar_perfil(self) -> None:
+        with self.lock:
+            self.cfg.perfil_carga = self._perfil_base
+            self._timer_perfil = None
+
+    def aplicar_perfil_temporario(self, perfil: str, duracao_segundos: float) -> dict[str, Any]:
+        if perfil not in PERFIS_CARGA:
+            raise ValueError(f"perfil invalido: {perfil}")
+        if duracao_segundos <= 0:
+            raise ValueError("duracao deve ser maior que zero")
+
+        with self.lock:
+            self.cfg.perfil_carga = perfil
+
+            if self._timer_perfil is not None:
+                self._timer_perfil.cancel()
+
+            self._timer_perfil = threading.Timer(duracao_segundos, self._restaurar_perfil)
+            self._timer_perfil.daemon = True
+            self._timer_perfil.start()
+
+            return {
+                "status": "ok",
+                "acao": f"perfil_{perfil}",
+                "duracao_segundos": duracao_segundos,
+                "perfil_atual": self.cfg.perfil_carga,
+                "perfil_base": self._perfil_base,
+                "restaurar_em_segundos": duracao_segundos,
+            }
 
     def gerar_proximo_evento(self) -> EventoCFTV:
         with self.lock:
@@ -103,6 +136,15 @@ class EstadoSimulacao:
             )
             uptime = (datetime.now() - self.inicializacao).total_seconds()
             return montar_saida_top(evento, uptime_segundos=uptime)
+
+    def status_operacional(self) -> dict[str, Any]:
+        with self.lock:
+            return {
+                "perfil_carga": self.cfg.perfil_carga,
+                "perfil_base": self._perfil_base,
+                "ciclo": self.ciclo,
+                "total_eventos": len(self.eventos),
+            }
 
     def health(self) -> dict[str, Any]:
         with self.lock:
@@ -181,6 +223,30 @@ class CFTVRequestHandler(BaseHTTPRequestHandler):
             logger.info(f"GET {path} 200")
             return
 
+        if path == "/api/command":
+            query = parse_qs(urlparse(self.path).query)
+            acao = (query.get("acao", [""])[0] or "").strip().lower()
+            duracao_raw = (query.get("duracao", ["60"])[0] or "60").strip()
+
+            try:
+                duracao = float(duracao_raw)
+                if acao in {"burst", "estourar"}:
+                    payload = self.estado.aplicar_perfil_temporario("burst", duracao)
+                elif acao in {"stress", "sobrecarregar"}:
+                    payload = self.estado.aplicar_perfil_temporario("stress", duracao)
+                elif acao in {"normal", "voltar"}:
+                    payload = self.estado.aplicar_perfil_temporario("normal", duracao)
+                else:
+                    raise ValueError("acao invalida. use burst, stress ou normal")
+
+                self._send_json(payload)
+                logger.info(f"GET {path}?acao={acao}&duracao={duracao} 200")
+            except ValueError as exc:
+                self.estado.total_erros += 1
+                self._send_json({"status": "erro", "erro": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                logger.warning(f"GET {path} 400 - {exc}")
+            return
+
         if path == "/healthz":
             payload = self.estado.health()
             self._send_json(payload)
@@ -194,6 +260,11 @@ class CFTVRequestHandler(BaseHTTPRequestHandler):
             self._send_common_headers()
             self.end_headers()
             self.wfile.write(top_texto.encode("utf-8"))
+            logger.info(f"GET {path} 200")
+            return
+
+        if path == "/api/state":
+            self._send_json(self.estado.status_operacional())
             logger.info(f"GET {path} 200")
             return
 

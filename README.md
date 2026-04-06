@@ -63,10 +63,28 @@ Saida estilo top para Zabbix:
 http://SEU_IP_DA_VM:8080/top
 ```
 
+Comando para disparar burst por tempo limitado:
+
+```text
+http://SEU_IP_DA_VM:8080/api/command?acao=burst&duracao=60
+```
+
+Para voltar ao normal por tempo limitado:
+
+```text
+http://SEU_IP_DA_VM:8080/api/command?acao=normal&duracao=30
+```
+
 JSON equivalente:
 
 ```text
 http://SEU_IP_DA_VM:8080/api/top
+```
+
+Estado operacional atual:
+
+```text
+http://SEU_IP_DA_VM:8080/api/state
 ```
 
 Exemplo com ambiente instavel:
