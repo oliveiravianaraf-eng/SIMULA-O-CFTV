@@ -29,6 +29,8 @@ from simulador_cftv import EventoCFTV
 from simulador_cftv import calcular_resumo
 from simulador_cftv import gerar_evento
 from simulador_cftv import inteiro_nao_negativo
+from simulador_cftv import PERFIS_CARGA
+from simulador_cftv import montar_saida_top
 from simulador_cftv import validar_configuracao
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -88,6 +90,19 @@ class EstadoSimulacao:
                 "evento": asdict(evento),
                 "resumo": resumo,
             }
+
+    def top_text(self) -> str:
+        with self.lock:
+            evento = self.eventos[-1] if self.eventos else EventoCFTV(
+                ciclo=0,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                conectividade=0,
+                sinal_video=0,
+                banda_mbps=0.0,
+                uso_disco_pct=self.uso_disco_atual,
+            )
+            uptime = (datetime.now() - self.inicializacao).total_seconds()
+            return montar_saida_top(evento, uptime_segundos=uptime)
 
     def health(self) -> dict[str, Any]:
         with self.lock:
@@ -160,9 +175,25 @@ class CFTVRequestHandler(BaseHTTPRequestHandler):
             logger.info(f"GET {path} 200")
             return
 
+        if path == "/api/top":
+            payload = {"top": self.estado.top_text()}
+            self._send_json(payload)
+            logger.info(f"GET {path} 200")
+            return
+
         if path == "/healthz":
             payload = self.estado.health()
             self._send_json(payload)
+            logger.info(f"GET {path} 200")
+            return
+
+        if path == "/top":
+            top_texto = self.estado.top_text()
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self._send_common_headers()
+            self.end_headers()
+            self.wfile.write(top_texto.encode("utf-8"))
             logger.info(f"GET {path} 200")
             return
 
@@ -211,6 +242,33 @@ class CFTVRequestHandler(BaseHTTPRequestHandler):
             "# HELP cftv_evento_uso_disco_pct Uso de disco em percentual",
             "# TYPE cftv_evento_uso_disco_pct gauge",
             f"cftv_evento_uso_disco_pct {evento['uso_disco_pct']}",
+            "# HELP cftv_evento_cpu_pct CPU em percentual",
+            "# TYPE cftv_evento_cpu_pct gauge",
+            f"cftv_evento_cpu_pct {evento['cpu_pct']}",
+            "# HELP cftv_evento_mem_pct Memoria em percentual",
+            "# TYPE cftv_evento_mem_pct gauge",
+            f"cftv_evento_mem_pct {evento['mem_pct']}",
+            "# HELP cftv_evento_load1 Load average 1m",
+            "# TYPE cftv_evento_load1 gauge",
+            f"cftv_evento_load1 {evento['load1']}",
+            "# HELP cftv_evento_req_por_seg Requisicoes por segundo",
+            "# TYPE cftv_evento_req_por_seg gauge",
+            f"cftv_evento_req_por_seg {evento['req_por_seg']}",
+            "# HELP cftv_evento_iowait_pct IOWait em percentual",
+            "# TYPE cftv_evento_iowait_pct gauge",
+            f"cftv_evento_iowait_pct {evento['iowait_pct']}",
+            "# HELP cftv_evento_fps FPS da camera",
+            "# TYPE cftv_evento_fps gauge",
+            f"cftv_evento_fps {evento['fps']}",
+            "# HELP cftv_evento_perda_frames_pct Perda de frames em percentual",
+            "# TYPE cftv_evento_perda_frames_pct gauge",
+            f"cftv_evento_perda_frames_pct {evento['perda_frames_pct']}",
+            "# HELP cftv_evento_processos_ativos Processos ativos simulados",
+            "# TYPE cftv_evento_processos_ativos gauge",
+            f"cftv_evento_processos_ativos {evento['processos_ativos']}",
+            "# HELP cftv_evento_temperatura_c Temperatura simulada em Celsius",
+            "# TYPE cftv_evento_temperatura_c gauge",
+            f"cftv_evento_temperatura_c {evento['temperatura_c']}",
             "# HELP cftv_resumo_uptime_rede_pct Uptime de rede em percentual",
             "# TYPE cftv_resumo_uptime_rede_pct gauge",
             f"cftv_resumo_uptime_rede_pct {resumo['uptime_rede_pct']}",
@@ -220,6 +278,18 @@ class CFTVRequestHandler(BaseHTTPRequestHandler):
             "# HELP cftv_resumo_banda_media_mbps Banda media em Mbps",
             "# TYPE cftv_resumo_banda_media_mbps gauge",
             f"cftv_resumo_banda_media_mbps {resumo['banda_media_mbps']}",
+            "# HELP cftv_resumo_cpu_media_pct CPU media em percentual",
+            "# TYPE cftv_resumo_cpu_media_pct gauge",
+            f"cftv_resumo_cpu_media_pct {resumo['cpu_media_pct']}",
+            "# HELP cftv_resumo_mem_media_pct Memoria media em percentual",
+            "# TYPE cftv_resumo_mem_media_pct gauge",
+            f"cftv_resumo_mem_media_pct {resumo['mem_media_pct']}",
+            "# HELP cftv_resumo_req_media_por_seg Requisicoes medias por segundo",
+            "# TYPE cftv_resumo_req_media_por_seg gauge",
+            f"cftv_resumo_req_media_por_seg {resumo['req_media_por_seg']}",
+            "# HELP cftv_resumo_temperatura_max_c Temperatura maxima simulada",
+            "# TYPE cftv_resumo_temperatura_max_c gauge",
+            f"cftv_resumo_temperatura_max_c {resumo['temperatura_max_c']}",
             "# HELP cftv_uptime_seconds Tempo desde inicializacao",
             "# TYPE cftv_uptime_seconds gauge",
             f"cftv_uptime_seconds {health['uptime_seconds']}",
@@ -241,6 +311,13 @@ def criar_parser() -> argparse.ArgumentParser:
     parser.add_argument("--host", type=str, default=os.getenv("HOST", "0.0.0.0"), help="Host de bind do servidor")
     parser.add_argument("--port", type=inteiro_nao_negativo, default=int(os.getenv("PORT", "8080")), help="Porta de bind do servidor")
     parser.add_argument("--intervalo", type=float, default=float(os.getenv("INTERVAL", "2.0")), help="Intervalo de atualizacao da simulacao")
+    parser.add_argument(
+        "--perfil-carga",
+        type=str,
+        default=os.getenv("PROFILE", "camera"),
+        choices=sorted(PERFIS_CARGA),
+        help="Perfil de carga da simulacao",
+    )
     parser.add_argument("--chance-rede-online", type=float, default=0.90, help="Probabilidade da rede estar online")
     parser.add_argument("--chance-video-ok", type=float, default=0.95, help="Probabilidade de camera com sinal")
     parser.add_argument("--uso-disco-inicial", type=float, default=50.0, help="Uso inicial de disco")
@@ -251,6 +328,7 @@ def criar_parser() -> argparse.ArgumentParser:
 def cfg_from_args(args: argparse.Namespace) -> ConfiguracaoSimulador:
     cfg = ConfiguracaoSimulador(
         intervalo_segundos=args.intervalo,
+        perfil_carga=args.perfil_carga,
         chance_rede_online=args.chance_rede_online,
         chance_video_ok_quando_online=args.chance_video_ok,
         uso_disco_inicial=args.uso_disco_inicial,

@@ -14,6 +14,7 @@ Agora o projeto tambem inclui um painel web profissional com tema azul e atualiz
 - Resumo estatistico no final da simulacao
 - Modo de execucao finita (`--ciclos`) para testes automatizados
 - Reproducao de cenarios com seed fixa (`--seed`)
+- Perfis de carga para simulacao de camera, stress e burst (`--perfil-carga`)
 
 ## Como executar
 
@@ -54,6 +55,18 @@ Saude da aplicacao (para monitoramento):
 
 ```text
 http://SEU_IP_DA_VM:8080/healthz
+```
+
+Saida estilo top para Zabbix:
+
+```text
+http://SEU_IP_DA_VM:8080/top
+```
+
+JSON equivalente:
+
+```text
+http://SEU_IP_DA_VM:8080/api/top
 ```
 
 Exemplo com ambiente instavel:
@@ -101,6 +114,7 @@ python simulador_cftv.py --ciclos 5 --sem-sleep --formato json
 - `--formato`: formato de saida (`texto` ou `json`)
 - `--sem-resumo`: desabilita o resumo estatistico ao fim
 - `--sem-sleep`: nao espera entre ciclos (util para testes)
+- `--perfil-carga`: define o modo da simulacao (`camera`, `normal`, `stress`, `burst`)
 
 ### Servidor web
 
@@ -178,7 +192,9 @@ sudo systemctl status cftv-dashboard
 
 - `GET /` - Painel de dashboard
 - `GET /api/status` - Status atual (JSON)
+- `GET /api/top` - Snapshot em JSON no estilo top
 - `GET /healthz` - Health check com uptime (JSON)
+- `GET /top` - Snapshot textual no estilo top
 - `GET /metrics` - Metricas Prometheus (text/plain)
 - `GET /styles.css` - CSS do painel
 - `GET /app.js` - JavaScript do painel
@@ -209,6 +225,7 @@ Itens iniciais recomendados:
 
 - HTTP Agent: `http://<IP_VM>:8080/healthz` (check saude + uptime)
 - HTTP Agent: `http://<IP_VM>:8080/api/status` (dados principais)
+- HTTP Agent: `http://<IP_VM>:8080/top` (saida estilo top para items/text parsing)
 - HTTP Agent: `http://<IP_VM>:8080/metrics` (Prometheus format para Grafana)
 - Dependent items (JSONPath) do `/api/status`:
 	- `$.evento.conectividade`
@@ -218,6 +235,12 @@ Itens iniciais recomendados:
 	- `$.resumo.uptime_rede_pct`
 	- `$.resumo.camera_ok_pct`
 	- `$.resumo.banda_media_mbps`
+	- `$.evento.cpu_pct`
+	- `$.evento.mem_pct`
+	- `$.evento.req_por_seg`
+	- `$.evento.iowait_pct`
+	- `$.evento.fps`
+	- `$.evento.perda_frames_pct`
 
 Triggers uteis:
 

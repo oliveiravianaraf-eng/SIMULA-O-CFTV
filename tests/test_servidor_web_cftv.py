@@ -52,6 +52,22 @@ class TestServidorWebCFTV(unittest.TestCase):
 
         self.assertIn("<title>CFTV Painel Operacional</title>", body)
 
+    def test_rota_top_retorna_texto(self) -> None:
+        with urlopen(f"{self.base_url}/top", timeout=2) as response:
+            self.assertEqual(response.status, 200)
+            body = response.read().decode("utf-8")
+
+        self.assertIn("load average", body)
+        self.assertIn("%Cpu(s)", body)
+
+    def test_rota_metrics_retorna_prometheus(self) -> None:
+        with urlopen(f"{self.base_url}/metrics", timeout=2) as response:
+            self.assertEqual(response.status, 200)
+            body = response.read().decode("utf-8")
+
+        self.assertIn("# HELP cftv_evento_cpu_pct", body)
+        self.assertIn("# TYPE cftv_total_requisicoes counter", body)
+
     def test_rota_inexistente_retorna_404(self) -> None:
         with self.assertRaises(HTTPError) as context:
             urlopen(f"{self.base_url}/nao-existe", timeout=2)
