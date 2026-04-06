@@ -24,6 +24,24 @@ Agora o projeto tambem inclui um painel web profissional com tema azul e atualiz
 python simulador_cftv.py
 ```
 
+### Modo terminal puro
+
+Se voce quer simular tudo sem interface grafica, use o modo `top` no terminal:
+
+```bash
+python cftv_top.py run
+```
+
+Em outro terminal da VM, voce dispara a carga quando quiser:
+
+```bash
+python cftv_top.py burst --duracao 60
+python cftv_top.py stress --duracao 60
+python cftv_top.py normal --duracao 10
+```
+
+Esse modo grava o estado local em arquivos ocultos `.cftv_control.json` e `.cftv_state.json`, entao funciona sem front grafico e sem navegador.
+
 ### Docker (prod/lab)
 
 ```bash
